@@ -1,8 +1,6 @@
-cd ~\Desktop\sentinel-node-oracle
-@'
-# Sentinel Connection Planner
+﻿# Sentinel Connection Planner
 
-Given a country, returns a ready-to-use connection plan for the Sentinel dVPN network: a primary node plus ordered backups, each with a confidence level, chosen from nodes that are both active now and reliable over time.
+Given a country, returns a ready-to-use connection plan for the Sentinel dVPN network: a primary node plus ordered backups, each with a confidence level, chosen from nodes that are both active now and reliable over time, and optionally verified to be live right now.
 
 If a censored country has no nodes of its own, the planner falls back to a usable neighbour instead of a dead end.
 
@@ -14,20 +12,26 @@ Asking "which node is fast right now" is easy and wrong. A node can look fast th
 
 This planner joins two live data sources:
 
-- latest.json - who is active now (protocol, country, speed)
+- latest.json - who is active now (protocol, country, speed, remote address)
 - history-summary.json - uptime and stability measured over the sampling window
 
 It picks the node that is active now AND clears the history bars (uptime, stability, enough samples), ranks by protocol fit for the country censorship level, then by reliability, then by speed.
 
-## What you get back
+## Plan, or plan + live verification
 
-    node cli.js "Germany"
+Two CLI faces:
 
-A primary pick plus backups, each labelled with a confidence level and the reason for it. For machine use:
+    node cli.js "Germany"      # the plan: primary + backups, with confidence
+    node verify.js "Germany"   # the plan, then live-checks each node and
+                               # presents the first one that is actually up now
 
-    node json.js "Iran"
+For machine use:
 
-returns the same plan as JSON, ready for an agent or another program to act on.
+    node json.js "Iran"        # the same plan as JSON, for an agent or program
+
+## How live verification works
+
+verify.js contacts each candidate node directly at https://host:port/ and accepts it only if it returns success:true AND the on-chain address it reports matches the address the planner expects. This catches nodes that look healthy in history but are down this second, and prevents a reassigned IP from impersonating a node. Sentinel nodes use self-signed certificates on their API port, which the check accepts - it is a liveness probe, no secrets are sent.
 
 ## Censorship-aware protocol strategy
 
@@ -48,17 +52,24 @@ For a censored country with no in-country nodes, the planner tries reachable nei
 Requires Node.js 18+ (built-in fetch). No install, no dependencies.
 
     node cli.js "Germany"
-    node cli.js "Iran"
-    node json.js "Germany"
+    node verify.js "Germany"
+    node json.js "Iran"
+
+## Files
+
+- core.js      - selection logic; returns a plan object, prints nothing
+- cli.js       - prints the plan
+- verify.js    - prints the plan, then live-checks each node
+- livecheck.js - the live-check module (used by verify.js)
+- json.js      - machine-readable JSON output
 
 ## Honest limitations
 
 - Censorship levels and neighbour maps are simplified. Real censorship varies by region, ISP, and time. Treat them as heuristics.
 - Country names come from IP geolocation and may not match the keys used here. Aliases are handled in a small dictionary; PRs welcome.
-- The planner ranks and plans. It does not connect. Opening a tunnel, switching protocols at runtime, or paying for a session is out of scope here - this is the decision layer, not the transport layer.
+- The planner ranks, plans, and checks liveness. It does not connect. Opening a tunnel, switching protocols at runtime, or paying for a session is out of scope here - this is the decision layer, not the transport layer.
 - This is research / measurement tooling, not a VPN client and not financial or security advice.
 
 ## License
 
 MIT
-'@ | Set-Content -Encoding utf8 README.md
