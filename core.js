@@ -54,6 +54,9 @@ function rankForCountry(nodes, H, country, order) {
     .sort((a,b) => {
       const ps = protoScore(b.n.protocol,order) - protoScore(a.n.protocol,order);
       if (ps!==0) return ps;
+      // peer-evidence: nodes that have actually had clients connected route for real
+      const pa=a.h&&a.h.p_pos!=null?a.h.p_pos:0, pb=b.h&&b.h.p_pos!=null?b.h.p_pos:0;
+      if (pb!==pa) return pb-pa;
       const sa=a.h?a.h.sc:0, sb=b.h?b.h.sc:0;
       if (sb!==sa) return sb-sa;
       return (b.n.dl_mbps||0)-(a.n.dl_mbps||0);
@@ -65,6 +68,7 @@ function shape(order) {
     moniker:n.moniker, addr:n.addr, remote:n.remote, protocol:n.protocol, country:n.country,
     dl:Math.round(n.dl_mbps), ul:Math.round(n.ul_mbps), priceGb:n.price_gb, city:n.city,
     confidence: confidenceOf(h, order, n.protocol),
+    exitEvidence: h && h.p_pos!=null ? { peerPercent:h.p_pos, likelyRoutes:h.p_pos>=20 } : { peerPercent:null, likelyRoutes:false },
     history: h ? { uptime:h.uptime, stability:h.stab, transitions:h.trans, samples:h.n } : null,
   });
 }

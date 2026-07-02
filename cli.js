@@ -12,6 +12,7 @@ async function main() {
     console.log(`\n  ${label}: "${p.moniker}" via ${p.protocol}  [${p.confidence.level.toUpperCase()}]`);
     console.log(`         ${p.country} / ${p.city}  |  ${p.dl}/${p.ul} Mbps  |  ${p.priceGb} udvpn/GB`);
     if (p.history) console.log(`         uptime ${p.history.uptime}% | ${p.history.transitions} flaps | ${p.history.samples} samples`);
+    if (p.exitEvidence && p.exitEvidence.peerPercent!=null) console.log(`         exit-evidence: had peers in ${p.exitEvidence.peerPercent}% of samples ${p.exitEvidence.likelyRoutes?"(likely routes)":"(weak - may not route)"}`);
   };
   show("PRIMARY", r.primary);
   r.backups.forEach((b,i) => show(`BACKUP ${i+1}`, b));

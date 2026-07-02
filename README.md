@@ -33,6 +33,22 @@ For machine use:
 
 verify.js contacts each candidate node directly at https://host:port/ and accepts it only if it returns success:true AND the on-chain address it reports matches the address the planner expects. This catches nodes that look healthy in history but are down this second, and prevents a reassigned IP from impersonating a node. Sentinel nodes use self-signed certificates on their API port, which the check accepts - it is a liveness probe, no secrets are sent.
 
+## Exit evidence (does the node actually route?)
+
+A node can be active, answer its API, and even accept a paid session, yet still
+not route your traffic. "Reachable" is not "routes". To catch this without
+paying to find out, the planner reads a signal from the measured history:
+`p_pos` - the share of samples in which the node had real peers connected.
+
+A node that has consistently had clients connected is a node that actually
+carries traffic. The planner ranks these first (after protocol fit), and each
+pick reports `exit-evidence`: the peer percentage and whether it likely routes.
+Nodes that answer the API but never hold peers are ranked below and flagged as
+weak, so you try the proven ones first.
+
+This does not replace a live end-to-end check, but it turns the whole Scorecard
+history into a cheap, pre-payment filter for nodes that really work.
+
 ## Censorship-aware protocol strategy
 
 Censorship levels (heavy / medium / light) are derived from [Freedom House - Freedom on the Net 2025](https://freedomhouse.org/report/freedom-net). For each level the planner prefers protocols in this order (also the fallback order):
